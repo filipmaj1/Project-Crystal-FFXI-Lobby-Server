@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Crystal.FFXILobbyServer</RootNamespace>
+    <OutputPath>$(SolutionDir)\Build\$(Configuration)\</OutputPath>
+    <Platforms>x86;x64</Platforms>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="packages\**" />
+    <EmbeddedResource Remove="packages\**" />
+    <None Remove="packages\**" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove=".gitignore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="Cyotek.CircularBuffer" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.8" />
+    <PackageReference Include="MySqlConnector" Version="2.6.0" />
+    <PackageReference Include="NLog" Version="5.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="NLog.config" />
+    <Content Include="lobby.cfg" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /y %22$(ProjectDir)NLog.config%22 %22$(OutDir)%22&#xD;&#xA;xcopy /y %22$(ProjectDir)lobby.cfg%22 %22$(OutDir)%22" />
+  </Target>
+
+  <Target Name="ForceLowercaseBinary" AfterTargets="Publish" Outputs="ForceExecution">
+
+    <PropertyGroup>
+      <CurrentWorkingDir Condition="'$(PublishDir)' != ''">$(PublishDir)</CurrentWorkingDir>
+      <CurrentWorkingDir Condition="'$(PublishDir)' == ''">$(OutputPath)</CurrentWorkingDir>
+
+      <NormalizedDir Condition="!HasTrailingSlash('$(CurrentWorkingDir)')">$(CurrentWorkingDir)\</NormalizedDir>
+      <NormalizedDir Condition="HasTrailingSlash('$(CurrentWorkingDir)')">$(CurrentWorkingDir)</NormalizedDir>
+
+      <SrcExe>$(NormalizedDir)$(TargetName).exe</SrcExe>
+      <DstExe>$(NormalizedDir)$(TargetName.ToLower()).exe</DstExe>
+
+      <SrcLinux>$(NormalizedDir)$(TargetName)</SrcLinux>
+      <DstLinux>$(NormalizedDir)$(TargetName.ToLower())</DstLinux>
+    </PropertyGroup>
+
+    <Move Condition="Exists('$(SrcExe)')" SourceFiles="$(SrcExe)" DestinationFiles="$(DstExe)" OverwriteReadOnlyFiles="true" />
+    <Move Condition="Exists('$(SrcLinux)')" SourceFiles="$(SrcLinux)" DestinationFiles="$(DstLinux)" OverwriteReadOnlyFiles="true" />
+
+    <Message Importance="Normal" Text="[POST-BUILD] Renamed to lowercase: $(NormalizedDir)" />
+  </Target>
+  
+</Project>
